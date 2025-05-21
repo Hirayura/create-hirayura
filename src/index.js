@@ -43,7 +43,7 @@ async function init() {
   // 创建项目目录
   const root = path.join(cwd, targetDir);
   const access = util.promisify(fs.access);
-  access(root, fs.constants.F_OK, (err) => {
+  await access(root, fs.constants.F_OK, (err) => {
     const exists = !err;
     if (exists) {
       console.log("directory exists!");
@@ -52,6 +52,7 @@ async function init() {
       execSync(
         `cd ${cwd} && git clone ${response.framework} ${targetDir} && cd ${root} && pnpm install`
       ).toString();
+      console.log("Project created successfully!");
     }
   });
 }
