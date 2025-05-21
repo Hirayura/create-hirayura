@@ -10,8 +10,22 @@ const cwd = process.cwd();
 const defaultDir = "hirayura-project";
 // 目标目录
 let targetDir = defaultDir;
+// 项目列表
+const projectList = [
+  {
+    title: "Angular",
+    value: "https://github.com/Hirayura/angular-example",
+    name: "angular-example",
+  },
+  { title: "Vue3", value: null },
+  { title: "Vue2", value: null },
+  { title: "React", value: null },
+];
 function formatTargetDir(target) {
   return target?.trim().replace(/\/+$/g, "");
+}
+function formatProjectName(name) {
+  return name.split("/").pop();
 }
 
 async function init() {
@@ -29,15 +43,7 @@ async function init() {
       type: "select",
       name: "framework",
       message: "Select a framework:",
-      choices: [
-        {
-          title: "Angular",
-          value: "https://github.com/Hirayura/angular-example",
-        },
-        { title: "Vue3", value: null },
-        { title: "Vue2", value: null },
-        { title: "React", value: null },
-      ],
+      choices: projectList,
     },
   ]);
   // 创建项目目录
@@ -45,6 +51,7 @@ async function init() {
   const access = util.promisify(fs.access);
   await access(root, fs.constants.F_OK, (err) => {
     const exists = !err;
+    if (!targetDir) return;
     if (exists) {
       console.log("directory exists!");
       process.exit(0);
@@ -52,6 +59,12 @@ async function init() {
       execSync(
         `cd ${cwd} && git clone ${response.framework} ${targetDir} && cd ${root} && pnpm install`
       ).toString();
+      const projectName = formatProjectName(response.framework);
+      processDirectory(root, projectName, targetDir);
+      fs.rmSync(path.join(root, ".git"), {
+        recursive: true,
+        force: true,
+      });
       console.log("Project created successfully!");
     }
   });
@@ -60,3 +73,40 @@ async function init() {
 init().catch((e) => {
   console.error(e);
 });
+
+// 支持的文件类型
+const allowedExt = [".js", ".jsx", ".html", ".css", ".txt", ".json", ".md"];
+// 排除的目录
+const excludedDirs = ["node_modules", ".git", ".idea", "vendor"];
+function processDirectory(dirPath, oldString, newString) {
+  const files = fs.readdirSync(dirPath);
+
+  files.forEach((file) => {
+    const filePath = path.join(dirPath, file);
+    const stats = fs.statSync(filePath);
+
+    if (stats.isDirectory()) {
+      if (excludedDirs.includes(file)) {
+        // console.log(`Skipping directory: ${filePath}`);
+        return;
+      }
+      processDirectory(filePath, oldString, newString);
+    } else {
+      const ext = path.extname(filePath).toLowerCase();
+      if (allowedExt.includes(ext)) {
+        processFile(filePath, oldString, newString);
+      }
+    }
+  });
+}
+
+function processFile(filePath, oldString, newString) {
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    const newContent = content.replace(oldString, newString);
+    fs.writeFileSync(filePath, newContent, "utf8");
+    // console.log(`文件已更新: ${filePath}`);
+  } catch (error) {
+    console.error(`Error processing ${filePath}: ${error.message}`);
+  }
+}
