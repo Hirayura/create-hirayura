@@ -74,14 +74,14 @@ init().catch((e) => {
   console.error(e);
 });
 
-// 支持的文件类型
-const allowedExt = [".js", ".jsx", ".html", ".css", ".txt", ".json", ".md"];
 // 排除的目录
-const excludedDirs = ["node_modules", ".git", ".idea", "vendor"];
+const excludedDirs = ["node_modules", ".git", ".idea", "vendor", ".vscode"];
 function processDirectory(dirPath, oldString, newString) {
   const files = fs.readdirSync(dirPath);
 
   files.forEach((file) => {
+    console.log(file);
+
     const filePath = path.join(dirPath, file);
     const stats = fs.statSync(filePath);
 
@@ -93,9 +93,7 @@ function processDirectory(dirPath, oldString, newString) {
       processDirectory(filePath, oldString, newString);
     } else {
       const ext = path.extname(filePath).toLowerCase();
-      if (allowedExt.includes(ext)) {
-        processFile(filePath, oldString, newString);
-      }
+      processFile(filePath, oldString, newString);
     }
   });
 }
@@ -103,7 +101,7 @@ function processDirectory(dirPath, oldString, newString) {
 function processFile(filePath, oldString, newString) {
   try {
     const content = fs.readFileSync(filePath, "utf8");
-    const newContent = content.replace(oldString, newString);
+    const newContent = content.replaceAll(oldString, newString);
     fs.writeFileSync(filePath, newContent, "utf8");
     // console.log(`文件已更新: ${filePath}`);
   } catch (error) {
